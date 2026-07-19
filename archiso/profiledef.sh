@@ -28,6 +28,8 @@ file_permissions=(
   ["/usr/local/bin/choose-mirror"]="0:0:755"
   ["/usr/local/bin/dmcheck"]="0:0:755"
   ["/usr/local/bin/calamares-online.sh"]="0:0:755"
+  ["/usr/local/bin/macpro-postinstall.sh"]="0:0:755"
+  ["/usr/local/bin/macpro-installer-launch.sh"]="0:0:755"
   ["/usr/local/bin/remove-nvidia"]="0:0:755"
   ["/usr/local/bin/removeun"]="0:0:755"
   ["/usr/local/bin/removeun-online"]="0:0:755"
@@ -35,4 +37,8 @@ file_permissions=(
   ["/usr/local/bin/nvidia-module-loader"]="0:0:755"
   ["/usr/local/bin/pkexec-wrapper"]="0:0:755"
   ["/etc/profile.d/no-reboot.sh"]="0:0:644"
+  ["/etc/modprobe.d/macpro-gpu.conf"]="0:0:644"
+  ["/etc/sysctl.d/99-macpro.conf"]="0:0:644"
+  ["/etc/modules-load.d/applesmc.conf"]="0:0:644"
+  ["/etc/ufw/applications.d/ssh.ufw"]="0:0:644"
 )

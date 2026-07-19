@@ -90,6 +90,7 @@ linux-macpro61-headers
 # linux-cachyos-zfs (removed - using macpro61 kernel)
 linux-firmware
 linux-firmware-marvell
+macfanctld
 lsb-release
 lsof
 lsscsi

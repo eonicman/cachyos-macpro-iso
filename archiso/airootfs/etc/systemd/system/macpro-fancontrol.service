@@ -1,0 +1,17 @@
+# Mac Pro 6,1 fan control — start at safe speed until macfanctld takes over
+[Unit]
+Description=Mac Pro 6,1 Fan Control (Safe Default)
+After=applesmc_load.service
+Wants=applesmc_load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Set all fans to 60% as safe default until macfanctld daemon starts
+# Fan files are /sys/devices/platform/applesmc.768/fan*_output (0-100)
+ExecStart=/bin/bash -c 'for f in /sys/devices/platform/applesmc.768/fan*_output; do [ -f "$f" ] && echo 60 > "$f" 2>/dev/null; done; true'
+# Let macfanctld take over
+ExecStart=/usr/bin/systemctl start macfanctld.service
+
+[Install]
+WantedBy=multi-user.target

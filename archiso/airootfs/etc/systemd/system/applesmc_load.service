@@ -1,0 +1,11 @@
+# Load applesmc module early for fan control
+[Unit]
+Description=Load applesmc sensor module
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/modprobe applesmc
+
+[Install]
+WantedBy=multi-user.target

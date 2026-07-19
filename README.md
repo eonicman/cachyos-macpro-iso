@@ -1,154 +1,164 @@
-# CachyOS Mac Pro 6,1 Edition
+# CachyOS Mac Pro 6,1 ISO — eonicman Fork
 
-A custom [CachyOS](https://cachyos.org) ISO for the **Mac Pro 6,1 (Late 2013)** with hardware support baked in.
+A fixed and maintained fork of [wolffcatskyy/cachyos-macpro-iso](https://github.com/wolffcatskyy/cachyos-macpro-iso) (archived March 2026).
+
+Custom [CachyOS](https://cachyos.org) ISO for the **Mac Pro 6,1 (Late 2013)** — the "trash can" Mac — with full hardware support, GPU firmware, fan control, and macOS Tahoe KVM.
+
+## Why This Fork
+
+The original project was archived with 6 critical bugs that made the ISO unbootable after installation. The kernel config is excellent; the ISO packaging and installer integration were broken. This fork fixes all 6 bugs:
+
+| Bug | Severity | Fix |
+|-----|----------|-----|
+| Empty `local-repo/` — kernel never enters ISO | 🔴 Critical | Build scripts + repo setup automation |
+| EFI boot entries missing custom kernel | 🟡 Medium | Added `03-archiso-linux-macpro61.conf` + fallback |
+| Initramfs references without initramfs | 🟡 Medium | Added mkinitcpio config + minimal initramfs |
+| No `macfanctld` / no applesmc in fallback | 🔴 Critical | Added `macfanctld` + `applesmc` module-load + fan service |
+| SSH not enabled / UFW blocks port 22 | 🟡 Medium | Enabled `sshd` + UFW SSH rule |
+| **Calamares pacstrap installs wrong kernel** | 🔴 Critical | Post-install chroot script swaps kernels, configures boot |
+
+See [FIXES.md](FIXES.md) for detailed analysis.
 
 ## What You Get
 
-- Full CachyOS desktop (KDE Plasma, 17+ DE options via installer)
-- Custom **linux-macpro61** kernel with:
-  - AMD D300/D500/D700 GPU firmware embedded (amdgpu driver)
-  - Cold-boot protection (Apple EFI needs poweroff, not reboot, for GPU init)
-  - Broadcom ethernet ready
-  - BORE CPU scheduler
-  - BBR3 congestion control
-- CachyOS performance optimizations (ananicy-cpp, optimized packages)
-- Calamares graphical installer — point and click to install
+- **CachyOS KDE Plasma** desktop with 17+ DE options via installer
+- **Custom `linux-macpro61` kernel** with:
+  - AMD FirePro D300/D500/D700 GPU firmware embedded (amdgpu SI support)
+  - All critical drivers built-in (=y) — no initramfs needed for basic boot
+  - BORE CPU scheduler + BBR3 congestion control
+  - ACPI GPE16 storm fix (Thunderbolt log spam eliminated)
+  - NVMe + TRIM support out of the box
+  - KVM built-in for macOS Tahoe virtualization
+- **Fan control** — `applesmc` + `macfanctld` for thermal management
+- **Cold boot protection** — `reboot` aliased to `poweroff`, `reboot.target` masked
+- **SSH enabled** in live environment for headless setup
+- **Post-install script** that fixes the kernel, boot entries, and hardware config
 
-## Pre-built ISO (Recommended)
+## Quick Start
 
-Download the latest pre-built ISO from [Releases](https://github.com/wolffcatskyy/cachyos-macpro-iso/releases). The ISO is split into two parts due to GitHub's 2GB file size limit.
+### Download the ISO
 
-1. Download both `.part_aa` and `.part_ab` files from the latest release
-2. Reassemble the ISO:
-   - **Linux/macOS:** `cat cachyos-macpro-*.iso.part_* > cachyos-macpro.iso`
-   - **Windows (PowerShell):** `cmd /c copy /b cachyos-macpro-*.iso.part_aa+cachyos-macpro-*.iso.part_ab cachyos-macpro.iso`
-3. Verify the checksum (listed in the release notes): `sha256sum cachyos-macpro.iso`
-4. Flash to USB:
-   - **Windows:** Use [Rufus](https://rufus.ie) or [balenaEtcher](https://etcher.balena.io)
-   - **Linux/macOS:** `sudo dd if=cachyos-macpro.iso of=/dev/sdX bs=4M status=progress`
-5. Boot your Mac Pro:
-   - Plug in the USB drive
-   - **Power off** the Mac Pro (never reboot — GPU firmware only initializes on cold boot)
-   - Press the power button and **immediately hold the Option key**
-   - Select the USB drive from the boot menu
-   - Choose **"CachyOS (Mac Pro 6,1)"** from the GRUB menu
-   - The desktop will load — double-click the installer icon
+Download the latest release from [GitHub Releases](https://github.com/eonicman/cachyos-macpro-iso/releases).
+
+### Flash to USB
+
+```bash
+# Linux/macOS
+sudo dd if=cachyos-macpro-*.iso of=/dev/sdX bs=4M status=progress && sync
+
+# Or use balenaEtcher / Rufus (Windows)
+```
+
+### Boot your Mac Pro
+
+1. **Power off** the Mac Pro (never reboot — GPU firmware only initializes on cold boot)
+2. Press the power button and **immediately hold the Option key**
+3. Select the USB drive
+4. Choose **"CachyOS (Mac Pro 6,1)"** from the GRUB menu
+5. Desktop loads — double-click the installer icon
+
+### ⚠️ After Install: Always Power Off
+
+The Mac Pro 6,1 has an Apple EFI quirk: **the GPU only initializes on cold boot**. After installation:
+```bash
+sudo poweroff    # NOT reboot!
+# Then press the power button
+```
 
 ## Build the ISO Yourself
 
-You need a working Arch Linux or CachyOS installation to build. If your Mac Pro already runs Arch/CachyOS, you can build directly on it.
+You need an Arch Linux or CachyOS machine (can be the Mac Pro itself).
 
-### Step 1: Install build tools
-
-```bash
-sudo pacman -S archiso mkinitcpio-archiso squashfs-tools grub git --needed
-```
-
-### Step 2: Clone this repo
+### Step 1: Clone both repos
 
 ```bash
-git clone https://github.com/wolffcatskyy/cachyos-macpro-iso.git
+git clone https://github.com/eonicman/linux-mac.git
+git clone https://github.com/eonicman/cachyos-macpro-iso.git
 cd cachyos-macpro-iso
 ```
 
-### Step 3: Get the kernel packages
-
-Download the latest `linux-macpro61` packages from [linux-mac releases](https://github.com/wolffcatskyy/linux-mac/releases) and place them in `local-repo/`:
+### Step 2: Build the kernel
 
 ```bash
-mkdir -p local-repo
-# Download both packages into local-repo/
-# linux-macpro61-*.pkg.tar.zst
-# linux-macpro61-headers-*.pkg.tar.zst
+./scripts/build-kernel.sh /path/to/linux-mac
+# Takes 30-90 min on a Mac Pro
 ```
 
-Then create the local package database:
+### Step 3: Set up the local repo
 
 ```bash
-cd local-repo
-repo-add macpro.db.tar.gz *.pkg.tar.zst
-cd ..
+./scripts/setup-local-repo.sh
 ```
 
-### Step 4: Update the repo path
-
-Edit `archiso/pacman.conf` and change the `[macpro]` section at the bottom to point to your `local-repo` directory:
-
-```ini
-[macpro]
-SigLevel = Never
-Server = file:///full/path/to/cachyos-macpro-iso/local-repo
-```
-
-### Step 5: Trust the CachyOS signing key
+### Step 4: Build the ISO
 
 ```bash
+sudo pacman -S archiso mkinitcpio-archiso squashfs-tools grub --needed
 sudo pacman-key --recv-keys 882DCFE48E2051D48E2562ABF3B607488DB35A47
 sudo pacman-key --lsign-key 882DCFE48E2051D48E2562ABF3B607488DB35A47
+./scripts/build-iso.sh -v
 ```
 
-### Step 6: Build
+## macOS Tahoe KVM
 
-```bash
-sudo ./buildiso.sh -p desktop -v -w
-```
+The kernel has KVM built-in. See [docs/kvm-macos.md](../linux-mac/docs/kvm-macos.md) for running macOS Tahoe in a VM with ~2-5% CPU overhead.
 
-The ISO will appear in `out/desktop/`. It will be around 2.5-3 GB.
+**Current state:** Phase 1 (software-rendered QXL display) — usable for CLI and light desktop work. Phase 3 (GPU passthrough via PVG) is on the roadmap in `linux-mac/docs/pvg-linux.md`.
 
-### Step 7: Write to USB
+## Hardware Support
 
-```bash
-sudo dd if=out/desktop/cachyos-macpro-*.iso of=/dev/sdX bs=4M status=progress
-sync
-```
+| Feature | Status | Notes |
+|---------|--------|-------|
+| GPU (D300/D500/D700) | ✅ Working | amdgpu built-in, radeonsi/RADV via Mesa |
+| Display (DP/HDMI) | ✅ Working | Via amdgpu + DC |
+| Vulkan / OpenGL | ✅ Working | Mesa RADV / radeonsi |
+| Ethernet (both ports) | ✅ Working | tg3 + Broadcom PHY built-in |
+| Wi-Fi | ⚠️ Proprietary | `broadcom-wl-dkms` (AUR) |
+| Audio | ✅ Working | Intel HDA + Cirrus CS4206 |
+| USB 3.0 | ✅ Working | xHCI built-in |
+| Thunderbolt 2 | ⚠️ Partial | Works with log spam (GPE16 masked) |
+| NVMe + TRIM | ✅ Working | Built-in; enable `fstrim.timer` |
+| Bluetooth | ✅ Working | Broadcom via btusb |
+| Fan Control | ✅ Working | applesmc + macfanctld |
+| KVM (macOS Tahoe) | ✅ Working | ~2-5% CPU overhead |
+| Sleep/Wake | ❌ Disabled | Unreliable on this hardware |
 
-Replace `/dev/sdX` with your USB drive. **Double-check the device name** — this erases everything on it. Use `lsblk` to identify your USB drive.
+## What's Changed from the Original
 
-### Step 8: Boot your Mac Pro
-
-1. Plug the USB into your Mac Pro
-2. Power on (or power off first if already running — **always poweroff, never reboot**)
-3. **Hold the Option key** immediately after pressing the power button
-4. Select the USB drive from the boot menu
-5. Choose **"CachyOS (Mac Pro 6,1)"** from the GRUB menu
-6. The desktop will load — double-click the installer icon
-
-## Important: Never Reboot
-
-The Mac Pro 6,1 has a quirk with Apple EFI: the GPU firmware only initializes on a **cold boot** (power off then power on). A warm reboot leaves the GPU in an uninitialized state — you get a black screen.
-
-This ISO includes protections:
-- `reboot` command is aliased to `poweroff`
-- `reboot.target` is masked in systemd
-- GRUB menu warns about this
-
-**Always use `sudo poweroff` then press the power button.**
-
-## What's Changed from Stock CachyOS ISO
-
-| File | Change |
+| Area | Change |
 |------|--------|
-| `archiso/packages_desktop.x86_64` | `linux-cachyos` replaced with `linux-macpro61`, nvidia packages removed |
-| `archiso/pacman.conf` | Local repo added for custom kernel |
-| `archiso/grub/grub.cfg` | Mac Pro kernel + amdgpu boot params as default |
-| `archiso/syslinux/archiso_sys-linux.cfg` | Same for BIOS boot |
-| `archiso/profiledef.sh` | ISO name/label updated |
-| `archiso/airootfs/etc/modprobe.d/macpro-gpu.conf` | amdgpu SI support, radeon blacklisted |
-| `archiso/airootfs/etc/profile.d/no-reboot.sh` | Reboot alias protection |
-| `archiso/airootfs/etc/systemd/system/reboot.target` | Masked (symlink to /dev/null) |
-| `archiso/airootfs/etc/pacman.d/hooks/99-esp-kernel-sync.hook` | Auto-sync kernel to ESP on update |
+| `local-repo/` | Build scripts to populate with kernel packages |
+| `packages_desktop.x86_64` | Added `macfanctld` |
+| EFI boot entries | Added `03-macpro61.conf` + `04-macpro61-fallback.conf` |
+| `systemd/system/` | Added `sshd.service`, `macpro-fancontrol.service`, `applesmc_load.service` |
+| `modules-load.d/` | Added `applesmc.conf` |
+| `ufw/applications.d/` | Added SSH UFW rule |
+| Post-install | `macpro-postinstall.sh` — swaps kernel, configures boot, fan control |
+| Installer wrapper | `macpro-installer-launch.sh` — runs Calamares then applies fixes |
+| `profiledef.sh` | Added new scripts to file_permissions |
+| Build scripts | `scripts/build-kernel.sh`, `setup-local-repo.sh`, `build-iso.sh` |
 
-## Reporting Issues
+## Testing Checklist
 
-Found a bug or need help? [Open an issue](https://github.com/wolffcatskyy/cachyos-macpro-iso/issues).
-
-If you can test the ISO on your Mac Pro 6,1, we'd love to hear your results — especially:
-- Which GPU model (D300, D500, or D700)?
-- Did the installer work?
-- Did the system boot after install?
-- Any hardware that didn't work?
+- [ ] ISO boots to desktop with Mac Pro kernel (GRUB entry 1)
+- [ ] `applesmc` loaded, fans audible (`sensors | grep applesmc`)
+- [ ] `macfanctld` running (`systemctl status macfanctld`)
+- [ ] GPU detected (`lspci | grep AMD`, `glxinfo | grep renderer`)
+- [ ] SSH accessible from another machine
+- [ ] `reboot` command warns and powers off instead
+- [ ] Calamares installer runs successfully
+- [ ] Installed system boots with `linux-macpro61` kernel
+- [ ] Installed system has macfanctld, no-reboot alias, ESP sync hook
+- [ ] `pacman -Syu` can update from [macpro] repo
+- [ ] Cold boot (poweroff + power on) restores GPU
+- [ ] Warm reboot produces warning and powers off
 
 ## Credits
 
-- [CachyOS](https://cachyos.org) for the base ISO builder and optimized packages
-- [linux-mac](https://github.com/wolffcatskyy/linux-mac) project for the Mac Pro 6,1 kernel
+- **wolffcatskyy** — original kernel config, hardware audit, KVM docs, and ISO framework
+- **CachyOS** — base ISO builder and optimized packages
+- **linux-mac** — custom kernel for Mac Pro 6,1
+
+## License
+
+GPL-2.0 (same as the Linux kernel)

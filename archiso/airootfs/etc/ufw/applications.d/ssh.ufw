@@ -1,0 +1,7 @@
+# UFW configuration for Mac Pro 6,1 ISO
+# Allow SSH (port 22) so the Mac Pro can be managed headless
+
+[sshd]
+title=SSH Remote Access
+description=Secure Shell daemon for remote management
+ports=22/tcp
