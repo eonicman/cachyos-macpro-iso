@@ -114,7 +114,7 @@ The kernel has KVM built-in. See [docs/kvm-macos.md](../linux-mac/docs/kvm-macos
 | Vulkan / OpenGL | ✅ Working | Mesa RADV / radeonsi |
 | Ethernet (both ports) | ✅ Working | tg3 + Broadcom PHY built-in |
 | Wi-Fi | ⚠️ Proprietary | `broadcom-wl-dkms` (AUR) |
-| Audio | ✅ Working | Intel HDA + Cirrus CS4206 |
+| Audio | ✅ Working | Intel HDA + Cirrus CS4208 (`model=macpro6 inv_jack_detect=1`) |
 | USB 3.0 | ✅ Working | xHCI built-in |
 | Thunderbolt 2 | ⚠️ Partial | Works with log spam (GPE16 masked) |
 | NVMe + TRIM | ✅ Working | Built-in; enable `fstrim.timer` |
@@ -123,10 +123,23 @@ The kernel has KVM built-in. See [docs/kvm-macos.md](../linux-mac/docs/kvm-macos
 | KVM (macOS Tahoe) | ✅ Working | ~2-5% CPU overhead |
 | Sleep/Wake | ❌ Disabled | Unreliable on this hardware |
 
+## Audio Fix (v2)
+
+The Mac Pro 6,1 uses a **Cirrus Logic CS4208** audio codec behind an Intel C600/X79 HDA controller. The generic `snd_hda_intel` driver doesn't apply the correct pin layout, so internal speakers and headphone jack are silent.
+
+**Fix:** Two config files injected into the ISO's airootfs:
+
+- `modprobe.d/macpro-audio.conf` — forces `model=macpro6` pin layout + `inv_jack_detect=1` (fixes phantom headphone detection that mutes internal speakers)
+- `modules-load.d/macpro-sound.conf` — loads `snd-hda-codec-cirrus` codec module
+
+**Critical:** After applying or changing audio config, you must **cold shutdown** (`sudo poweroff`), not reboot. The Mac Pro 6,1 EFI doesn't reset audio power lanes on warm reboot.
+
 ## What's Changed from the Original
 
 | Area | Change |
 |------|--------|
+| `modprobe.d/macpro-audio.conf` | **NEW** — Mac Pro 6,1 audio pin layout + jack detect fix |
+| `modules-load.d/macpro-sound.conf` | **NEW** — Load Cirrus Logic CS4208 codec module |
 | `local-repo/` | Build scripts to populate with kernel packages |
 | `packages_desktop.x86_64` | Added `macfanctld` |
 | EFI boot entries | Added `03-macpro61.conf` + `04-macpro61-fallback.conf` |
@@ -151,6 +164,8 @@ The kernel has KVM built-in. See [docs/kvm-macos.md](../linux-mac/docs/kvm-macos
 - [ ] Installed system has macfanctld, no-reboot alias, ESP sync hook
 - [ ] `pacman -Syu` can update from [macpro] repo
 - [ ] Cold boot (poweroff + power on) restores GPU
+- [ ] Audio works (internal speakers + headphone jack)
+- [ ] `alsamixer` shows HDA Intel PCH with unmuted controls
 - [ ] Warm reboot produces warning and powers off
 
 ## Credits

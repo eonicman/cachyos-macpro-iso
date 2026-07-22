@@ -38,7 +38,9 @@ file_permissions=(
   ["/usr/local/bin/pkexec-wrapper"]="0:0:755"
   ["/etc/profile.d/no-reboot.sh"]="0:0:644"
   ["/etc/modprobe.d/macpro-gpu.conf"]="0:0:644"
+  ["/etc/modprobe.d/macpro-audio.conf"]="0:0:644"
   ["/etc/sysctl.d/99-macpro.conf"]="0:0:644"
   ["/etc/modules-load.d/applesmc.conf"]="0:0:644"
+  ["/etc/modules-load.d/macpro-sound.conf"]="0:0:644"
   ["/etc/ufw/applications.d/ssh.ufw"]="0:0:644"
 )
