@@ -81,16 +81,16 @@ libfido2
 libusb-compat
 libwnck3
 linux-atm
-linux-cachyos-lts
+# linux-cachyos-lts
 # linux-cachyos-lts-zfs (removed for Mac Pro)
 # linux-cachyos-lts-nvidia-open (removed for Mac Pro)
 linux-macpro61
-linux-macpro61-headers
+# linux-macpro61-headers
 # linux-cachyos-nvidia-open (removed for Mac Pro - uses amdgpu)
 # linux-cachyos-zfs (removed - using macpro61 kernel)
 linux-firmware
 linux-firmware-marvell
-macfanctld
+# macfanctld
 lsb-release
 lsof
 lsscsi

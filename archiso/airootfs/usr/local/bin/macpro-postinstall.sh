@@ -141,7 +141,7 @@ title   CachyOS (Mac Pro 6,1)
 sort-key A
 linux   /vmlinuz-linux-macpro61
 initrd  /initramfs-linux-macpro61.img
-options root=PARTUUID=%%PARTUUID%% rw amdgpu.si_support=1 amdgpu.dc=0 radeon.si_support=0 acpi_mask_gpe=0x16 nvme_load=yes
+options root=PARTUUID=%%PARTUUID%% rw amdgpu.si_support=1 amdgpu.dc=1 amdgpu.modeset=1 radeon.si_support=0 acpi_mask_gpe=0x16 nvme_load=yes
 ENTRY
 
     # Create fallback entry
@@ -150,7 +150,7 @@ title   CachyOS (Mac Pro 6,1 - Fallback)
 sort-key B
 linux   /vmlinuz-linux-macpro61
 initrd  /initramfs-linux-macpro61-fallback.img
-options root=PARTUUID=%%PARTUUID%% rw amdgpu.si_support=1 amdgpu.dc=0 radeon.si_support=0 acpi_mask_gpe=0x16 nvme_load=yes
+options root=PARTUUID=%%PARTUUID%% rw amdgpu.si_support=1 amdgpu.dc=1 amdgpu.modeset=1 radeon.si_support=0 acpi_mask_gpe=0x16 nvme_load=yes
 ENTRY
 
     # Update loader.conf
@@ -259,7 +259,8 @@ SYSCTL
 cat > /etc/modprobe.d/macpro-gpu.conf << 'MODPROBE'
 # Mac Pro 6,1: AMD FirePro D300/D500/D700 (Southern Islands)
 options amdgpu si_support=1
-options amdgpu dc=0
+options amdgpu dc=1
+options amdgpu modeset=1
 options radeon si_support=0
 MODPROBE
 

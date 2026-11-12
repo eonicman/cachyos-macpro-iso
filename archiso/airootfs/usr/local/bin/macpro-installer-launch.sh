@@ -56,18 +56,29 @@ EOF
     # ─── Mac Pro 6,1 Custom Step ──────────────────────────────────────────
     # Cache the kernel package so the post-install script can find it
     echo ">>> Caching linux-macpro61 package for post-install..."
-    if pacman -Si linux-macpro61 &>/dev/null; then
-        sudo pacman -Sw --noconfirm linux-macpro61 linux-macpro61-headers 2>/dev/null || true
-    fi
-    # Also try to find it in the local repo
-    for pkg in /home/michael/linux-mac/cachyos-iso/local-repo/linux-macpro61-*.pkg.tar.zst \
-               /var/cache/pacman/pkg/linux-macpro61-*.pkg.tar.zst; do
+    # Find the kernel package directly from ISO cache
+    FOUND_PKG=""
+    for pkg in /var/cache/pacman/pkg/linux-macpro61-*.pkg.tar.zst; do
         if [[ -f "$pkg" ]]; then
             echo "    Found cached kernel: $pkg"
-            sudo cp "$pkg" /var/cache/pacman/pkg/ 2>/dev/null || true
+            FOUND_PKG="$pkg"
+            break
         fi
     done
-
+    if [[ -z "$FOUND_PKG" ]]; then
+        for pkg in /run/archiso/bootmnt/arch/x86_64/macpro/linux-macpro61-*.pkg.tar.zst; do
+            if [[ -f "$pkg" ]]; then
+                echo "    Found kernel on ISO: $pkg"
+                FOUND_PKG="$pkg"
+                sudo cp "$pkg" /var/cache/pacman/pkg/ 2>/dev/null || true
+                break
+            fi
+        done
+    fi
+    if [[ -z "$FOUND_PKG" ]]; then
+        echo "    WARNING: linux-macpro61 package not found in ISO cache"
+        echo "    The post-install script will attempt to install from [macpro] repo."
+    fi
     # ─── Run Calamares ─────────────────────────────────────────────────────
     echo ">>> Starting Calamares installer..."
     echo ">>> After installation completes, Mac Pro 6,1 fixes will be applied."
